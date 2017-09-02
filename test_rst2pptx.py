@@ -9,6 +9,18 @@ class Test_rst2pptx(unittest.TestCase):
 =====
 Title
 =====
+
+Slide 1
+=======
+
+This is the first slide
+
+Slide 2
+=======
+
+* hello
+* today
+
 """
         prs = rst2pptx.render(sample)
 

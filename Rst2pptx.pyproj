@@ -6,7 +6,7 @@
     <ProjectGuid>8c175120-481a-4c01-b624-f0547d03aed5</ProjectGuid>
     <ProjectHome>
     </ProjectHome>
-    <StartupFile>Rst2pptx.py</StartupFile>
+    <StartupFile>rst2pptx.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -27,8 +27,11 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="Rst2pptx.py" />
+    <Compile Include="rst2pptx.py" />
     <Compile Include="setup.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="test_rst2pptx.py">
       <SubType>Code</SubType>
     </Compile>
   </ItemGroup>

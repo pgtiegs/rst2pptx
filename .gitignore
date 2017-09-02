@@ -7,3 +7,4 @@
 /build
 /py3
 /rst2pptx.egg-info
+/__pycache__

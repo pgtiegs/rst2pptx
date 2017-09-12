@@ -9,6 +9,20 @@ class Test_rst2pptx(unittest.TestCase):
 =====
 Title
 =====
+
+My Title Slide
+==============
+* This is slide
+
+Second Slide
+============
+
+* Hello
+
+sub-section
+-----------
+My Subsection
+
 """
         prs = rst2pptx.render(sample)
 
@@ -18,7 +32,7 @@ Title
         
        
         print([x.name for x in prs.slide_layouts])
-
+        prs.save("test.pptx")
 
 if __name__ == '__main__':
     unittest.main()

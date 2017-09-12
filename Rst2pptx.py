@@ -15,8 +15,13 @@ def render(rststring):
     print(doctree)
     root = ET.fromstring(doctree)
    
+    title_slide = prs.slides.add_slide(prs.slide_layouts[0])
+    for section in root.findall("section")[:1]:
+        print(section.find('title'))
+        slide = prs.slides.add_slide(prs.slide_layouts[1])
+        title_shape = slide.shapes.title
+        title_shape.text = section.find("title").text
 
-    print(root)
 
     return prs
 

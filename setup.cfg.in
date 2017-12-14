@@ -1,0 +1,8 @@
+[metadata]
+name = @PROJECT_NAME@
+version = @PROJECT_VERSION@
+description=@PROJECT_DESCRIPTION@
+author="Peter Tiegs"
+author_email="netpete@gmail.com"
+url="https://netpete.visualstudio.com/Rst2pptx"
+

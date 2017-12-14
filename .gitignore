@@ -8,3 +8,4 @@
 /py3
 /rst2pptx.egg-info
 /__pycache__
+setup.cfg

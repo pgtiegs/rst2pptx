@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.9)
 project(rst2pptx
     VERSION 0.4.1
     DESCRIPTION "Generate Powerpoint from Restructured Text"
+    Languages NONE
     )
 
 configure_file(setup.cfg.in ${CMAKE_CURRENT_SOURCE_DIR}/setup.cfg)

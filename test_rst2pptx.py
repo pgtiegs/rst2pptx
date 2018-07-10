@@ -1,5 +1,7 @@
 import unittest
-import rst2pptx
+import docutils.core
+import docutils.io
+
 import pptx
 import rst2pptx
 
@@ -24,15 +26,18 @@ sub-section
 My Subsection
 
 """
-        prs = rst2pptx.render(sample)
+        writer = rst2pptx.PowerPointWriter()
+        writer.document = docutils.core.publish_doctree(sample)
+        writer.presentation = pptx.Presentation()
+        writer.translate()
 
-        self.assertIsInstance(prs, pptx.presentation.Presentation )
+        self.assertIsInstance(writer.presentation, pptx.presentation.Presentation )
 
-        self.assertEqual(prs.slides[0].slide_layout.name, "Title Slide")
+        self.assertEqual(writer.presentation.slides[0].slide_layout.name, "Title Slide")
         
        
-        print([x.name for x in prs.slide_layouts])
-        prs.save("test.pptx")
+        print([x.name for x in writer.presentation.slide_layouts])
+        writer.presentation.save("test.pptx")
 
 if __name__ == '__main__':
     unittest.main()

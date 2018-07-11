@@ -1,7 +1,10 @@
 import unittest
+import glob
+
 import docutils.core
 import docutils.io
 
+from lxml import etree
 import pptx
 import rst2pptx
 
@@ -38,6 +41,29 @@ My Subsection
        
         print([x.name for x in writer.presentation.slide_layouts])
         writer.presentation.save("test.pptx")
+
+    def base_slides(self, feature):
+        writer = rst2pptx.PowerPointWriter()
+        writer.presentation = pptx.Presentation()
+        with open("test/{}.rst".format(feature), 'r') as fd:
+            writer.document = docutils.core.publish_doctree(fd.read())
+        writer.translate()
+        base_slides = [etree.parse(x).getroot() for x in glob.glob("test/{}/*.xml".format(feature))] 
+        for base, slide in zip(base_slides, writer.presentation.slides):
+            print(slide.element)
+            self.assertEqual(etree.tostring(base), etree.tostring(slide.element))
+
+    def test_bullets(self):
+        self.base_slides("bullets")
+
+    def test_enumerated_lists(self):
+        self.base_slides("enumerated_list")
+
+    def test_image_from_uri(self):
+        self.base_slides("image_from_uri")
+
+    def test_text_in_title_slide(self):
+        self.base_slides("text_in_title_slide")
 
 if __name__ == '__main__':
     unittest.main()

@@ -211,6 +211,22 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
     def depart_entry(self, node):
         pass
 
+    def visit_reference(self, node):
+        logging.debug("visiting reference")
+        #Get existing paragraph or add paragraph
+        #create text run from reference
+        #add hyperlink to run
+        #add run to paragraph
+
+    def depart_reference(self, node):    
+        logging.debug("departing reference")
+
+    def visit_target(self, node):
+        pass
+
+    def depart_target(self, node):
+        pass
+
     def unknown_visit(self, node):
         self.document.reporter.warning('unknown_visit({})'.format(node))
 

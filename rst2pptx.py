@@ -107,36 +107,44 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
         pass
 
     def visit_Text(self, node):
+        logging.debug("visiting text")
+
+        logging.debug("text parent = {}".format(node.parent.tagname))
+        text_frame = self.slides[-1].shapes.placeholders[1].text_frame
+        paragraph = text_frame.paragraphs[-1]
+        run = paragraph.add_run()
+        run.text = node.astext()
+
         pass
 
     def depart_Text(self, node):
+        logging.debug("departing text")
         pass
 
     def visit_list_item(self, node):
-        text_frame = self.slides[-1].shapes.placeholders[1].text_frame
-        paragraph = text_frame.add_paragraph()
-        paragraph.text = node.astext()
-
-        if self.bullet_level:
-            paragraph.level = self.bullet_level
-
-        raise docutils.nodes.SkipNode
-
+        logging.debug("visiting list_item")
+        
     def depart_list_item(self, node):
+        logging.debug("departing list_item")
         pass
 
     def visit_paragraph(self, node):
+        logging.debug("visiting paragraph")
+
         shapes = self.slides[-1].shapes
 
         if self.title_slide and not shapes[-1].text:
             # This must be the empty text box for the subtitle.
-            shapes[-1].text = node.astext()
+            pass
         else:
             text_frame = self.slides[-1].shapes.placeholders[1].text_frame
             paragraph = text_frame.add_paragraph()
-            paragraph.text = node.astext()
+            # Need to check that this works without bullet lists
+            if self.bullet_level:
+                paragraph.level = self.bullet_level
 
     def depart_paragraph(self, node):
+        logging.debug("departing paragraph")
         pass
 
     def visit_section(self, node):
@@ -147,6 +155,7 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
         pass
 
     def visit_title(self, node):
+        logging.debug("visiting title")
         if len(self.slides):
             self.slides[-1].shapes.title.text = node.astext()
         else:
@@ -155,8 +164,10 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
             slide.shapes.title.text = node.astext()
             self.title_slide = True
             # TODO: Author.
+        raise docutils.nodes.SkipNode
 
     def depart_title(self, node):
+        logging.debug("departing title")
         pass
 
     def visit_literal_block(self, node):
@@ -166,9 +177,11 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
         pass
 
     def visit_bullet_list(self, node):
+        logging.debug("visiting bullet_level {}".format(self.bullet_level))
         self.bullet_level += 1
 
     def depart_bullet_list(self, node):
+        logging.debug("departing bullet_level {}".format(self.bullet_level))
         self.bullet_level -= 1
         assert self.bullet_level >= 0
 
@@ -213,12 +226,13 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
 
     def visit_reference(self, node):
         logging.debug("visiting reference")
-        #Get existing paragraph or add paragraph
-        #create text run from reference
-        #add hyperlink to run
-        #add run to paragraph
 
     def depart_reference(self, node):    
+        text_frame = self.slides[-1].shapes.placeholders[1].text_frame
+        paragraph = text_frame.paragraphs[-1]
+        run = paragraph.runs[-1]
+    
+        run.hyperlink.address = node.attributes.get('refuri')
         logging.debug("departing reference")
 
     def visit_target(self, node):

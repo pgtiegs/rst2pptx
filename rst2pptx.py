@@ -64,6 +64,42 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
     def depart_document(self, node):
         pass
 
+    def visit_decoration(self,node):
+        logging.debug("-> decoration")
+    
+    def depart_decoration(self,node):
+        logging.debug("decoration ->")
+
+    def visit_footer(self,node):
+        logging.debug("-> footer")
+    
+    def depart_footer(self,node):
+        logging.debug("footer ->")
+
+    def visit_substitution_definition(self,node):
+        logging.debug("-> substitution_definition")
+    
+    def depart_substitution_definition(self,node):
+        logging.debug("substitution_definition ->")
+
+    def visit_author(self,node):
+        logging.debug("-> author")
+    
+    def depart_author(self,node):
+        logging.debug("author ->")
+
+    def visit_date(self,node):
+        logging.debug("-> date")
+    
+    def depart_date(self,node):
+        logging.debug("date ->")
+
+    def visit_docinfo(self,node):
+        logging.debug("-> docinfo")
+    
+    def depart_docinfo(self,node):
+        logging.debug("docinfo ->")
+
     def visit_docinfo_item(self, node, name):
         pass
 
@@ -106,6 +142,18 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
     def depart_image(self, node):
         pass
 
+    def visit_figure(self,node):
+        logging.debug("-> figure")
+    
+    def depart_figure(self,node):
+        logging.debug("figure ->")
+
+    def visit_caption(self,node):
+        logging.debug("-> caption")
+    
+    def depart_caption(self,node):
+        logging.debug("caption ->")
+
     def visit_Text(self, node):
         logging.debug("visiting text")
 
@@ -114,8 +162,6 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
         paragraph = text_frame.paragraphs[-1]
         run = paragraph.add_run()
         run.text = node.astext()
-
-        pass
 
     def depart_Text(self, node):
         logging.debug("departing text")
@@ -176,6 +222,60 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
     def depart_literal_block(self, node):
         pass
 
+    def visit_literal(self,node):
+        logging.debug("-> literal")
+
+    def depart_literal(self,node):
+        logging.debug("literal ->")
+
+    def visit_definition_list(self,node):
+        logging.debug("-> definition_list")
+
+    def depart_definition_list(self,node):
+        logging.debug("definition_list->")
+
+    def visit_definition_list_item(self,node):
+        logging.debug("-> definition_list_item")
+
+    def depart_definition_list_item(self,node):
+        logging.debug("definition_list_item ->")
+
+    def visit_term(self,node):
+        logging.debug("-> term")
+
+    def depart_term(self,node):
+        logging.debug("term ->")
+
+    def visit_definition(self,node):
+        logging.debug("-> definition")
+
+    def depart_definition(self,node):
+        logging.debug("definition ->")
+
+    def visit_block_quote(self,node):
+        logging.debug("-> block_quote")
+
+    def depart_block_quote(self,node):
+        logging.debug("block_quote ->")
+
+    def visit_inline(self,node):
+        logging.debug("-> inline")
+
+    def depart_inline(self,node):
+        logging.debug("inline ->")
+
+    def visit_topic(self,node):
+        logging.debug("-> topic")
+
+    def depart_topic(self,node):
+        logging.debug("topic ->")
+
+    def visit_transition(self,node):
+        logging.debug("-> transition")
+
+    def depart_transition(self,node):
+        logging.debug("transition ->")
+
     def visit_bullet_list(self, node):
         logging.debug("visiting bullet_level {}".format(self.bullet_level))
         self.bullet_level += 1
@@ -210,6 +310,30 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
 
             self.table_rows = None
 
+    def visit_tbody(self,node):
+        logging.debug("-> tbody")
+    
+    def depart_tbody(self,node):
+        logging.debug("tbody ->")
+
+    def visit_thead(self,node):
+        logging.debug("-> thead")
+    
+    def depart_thead(self,node):
+        logging.debug("thead ->")
+
+    def visit_table(self,node):
+        logging.debug("-> table")
+    
+    def depart_table(self,node):
+        logging.debug("table ->")
+
+    def visit_colspec(self,node):
+        logging.debug("-> colspec")
+    
+    def depart_colspec(self,node):
+        logging.debug("colspec ->")
+
     def visit_row(self, node):
         assert self.table_rows is not None
         self.table_rows.append([])
@@ -234,6 +358,17 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
     
         run.hyperlink.address = node.attributes.get('refuri')
         logging.debug("departing reference")
+
+    def visit_strong(self, node):
+        logging.debug("visiting strong")
+
+    def depart_strong(self, node):
+        text_frame = self.slides[-1].shapes.placeholders[1].text_frame
+        paragraph = text_frame.paragraphs[-1]
+        run = paragraph.runs[-1]
+
+        run.font.bold = True
+        logging.debug("departing strong")
 
     def visit_target(self, node):
         pass

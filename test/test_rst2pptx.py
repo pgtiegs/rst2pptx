@@ -65,5 +65,8 @@ My Subsection
     def test_text_in_title_slide(self):
         self.base_slides("text_in_title_slide")
 
+    def test_hyperlinks(self):
+        self.base_slides("hyperlink")
+
 if __name__ == '__main__':
     unittest.main()

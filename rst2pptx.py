@@ -36,7 +36,7 @@ import docutils.nodes
 import docutils.utils
 import pptx
 
-
+from lxml import etree
 __version__ = '0.3'
 
 logging.basicConfig(level=logging.DEBUG)
@@ -53,6 +53,8 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
         docutils.nodes.NodeVisitor.__init__(self, document)
 
         self.bullet_level = 0
+        self.bullet_list = False
+        self.enum_list = False
         self.presentation = presentation
         self.slides = self.presentation.slides
         self.table_rows = None
@@ -186,7 +188,17 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
             text_frame = self.slides[-1].shapes.placeholders[1].text_frame
             paragraph = text_frame.add_paragraph()
             # Need to check that this works without bullet lists
-            if self.bullet_level:
+            logging.debug("Bullet List= {}, Enum List = {}".format(self.bullet_list, self.enum_list))
+            if not self.bullet_list:
+                if self.enum_list:
+                    paragraph._pPr.attrib['marL'] = "427789"
+                    paragraph._pPr.attrib['indent'] = "-427789"
+                    e = etree.SubElement(paragraph._pPr, "{http://schemas.openxmlformats.org/drawingml/2006/main}buAutoNum")
+                    e.attrib["type"] = "arabicPeriod"
+                    e.attrib["startAt"] = "1"
+                else:
+                    etree.SubElement(paragraph._pPr, "{http://schemas.openxmlformats.org/drawingml/2006/main}buNone")
+            if self.bullet_list:
                 paragraph.level = self.bullet_level
 
     def depart_paragraph(self, node):
@@ -277,19 +289,38 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
         logging.debug("transition ->")
 
     def visit_bullet_list(self, node):
+        if self.bullet_list:
+            self.bullet_level += 1
+        else:
+            self.bullet_list = True
         logging.debug("visiting bullet_level {}".format(self.bullet_level))
-        self.bullet_level += 1
+
+
 
     def depart_bullet_list(self, node):
+        if self.bullet_level == 0:
+            self.bullet_list = False
+        if self.bullet_list:
+            self.bullet_level -= 1
         logging.debug("departing bullet_level {}".format(self.bullet_level))
-        self.bullet_level -= 1
-        assert self.bullet_level >= 0
+        assert self.bullet_level >= 0 
 
     def visit_enumerated_list(self, node):
-        pass
+        logging.debug("-> enumerated_list")
+        if self.enum_list:
+            self.bullet_level += 1
+        else:
+            self.enum_list = True
+        logging.debug("visiting bullet_level {}".format(self.bullet_level))
 
     def depart_enumerated_list(self, node):
-        pass
+        logging.debug("enumerated_list ->")
+        if self.bullet_level == 0:
+            self.enum_list = False
+        if self.enum_list:
+            self.bullet_level -= 1
+        logging.debug("departing bullet_level {}".format(self.bullet_level))
+        assert self.bullet_level >= 0 
 
     def visit_tgroup(self, node):
         self.table_rows = []

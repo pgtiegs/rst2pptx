@@ -44,6 +44,15 @@ logging.basicConfig(level=logging.DEBUG)
 TITLE_BUFFER = pptx.util.Inches(2.)
 MARGIN = pptx.util.Inches(1.)
 
+def setBuNone(paragraph):
+    etree.SubElement(paragraph._pPr, "{http://schemas.openxmlformats.org/drawingml/2006/main}buNone")
+
+def setBuAutoNum(paragraph):
+    paragraph._pPr.attrib['marL'] = "427789"
+    paragraph._pPr.attrib['indent'] = "-427789"
+    e = etree.SubElement(paragraph._pPr, "{http://schemas.openxmlformats.org/drawingml/2006/main}buAutoNum")
+    e.attrib["type"] = "arabicPeriod"
+    e.attrib["startAt"] = "1"
 
 class PowerPointTranslator(docutils.nodes.NodeVisitor):
 
@@ -187,17 +196,11 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
         else:
             text_frame = self.slides[-1].shapes.placeholders[1].text_frame
             paragraph = text_frame.add_paragraph()
-            # Need to check that this works without bullet lists
-            logging.debug("Bullet List= {}, Enum List = {}".format(self.bullet_list, self.enum_list))
             if not self.bullet_list:
                 if self.enum_list:
-                    paragraph._pPr.attrib['marL'] = "427789"
-                    paragraph._pPr.attrib['indent'] = "-427789"
-                    e = etree.SubElement(paragraph._pPr, "{http://schemas.openxmlformats.org/drawingml/2006/main}buAutoNum")
-                    e.attrib["type"] = "arabicPeriod"
-                    e.attrib["startAt"] = "1"
+                    setBuAutoNum(paragraph)
                 else:
-                    etree.SubElement(paragraph._pPr, "{http://schemas.openxmlformats.org/drawingml/2006/main}buNone")
+                    setBuNone(paragraph)
             if self.bullet_list:
                 paragraph.level = self.bullet_level
 

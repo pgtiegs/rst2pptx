@@ -89,21 +89,57 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
 
     def visit_substitution_definition(self,node):
         logging.debug("-> substitution_definition")
+        raise docutils.nodes.SkipNode
     
     def depart_substitution_definition(self,node):
         logging.debug("substitution_definition ->")
 
     def visit_author(self,node):
         logging.debug("-> author")
+        text_frame = self.slides[-1].shapes.placeholders[1].text_frame
+        paragraph = text_frame.add_paragraph()
+        paragraph.alignment = pptx.enum.text.PP_ALIGN.LEFT
     
     def depart_author(self,node):
         logging.debug("author ->")
 
     def visit_date(self,node):
         logging.debug("-> date")
+        text_frame = self.slides[-1].shapes.placeholders[1].text_frame
+        paragraph = text_frame.add_paragraph()
+        paragraph.alignment = pptx.enum.text.PP_ALIGN.LEFT
     
     def depart_date(self,node):
         logging.debug("date ->")
+
+    def visit_version(self,node):
+        logging.debug("-> version")
+        text_frame = self.slides[-1].shapes.placeholders[1].text_frame
+        paragraph = text_frame.add_paragraph()
+        paragraph.alignment = pptx.enum.text.PP_ALIGN.LEFT
+    
+    def depart_version(self,node):
+        logging.debug("version ->")
+
+    def visit_status(self,node):
+        logging.debug("-> status")
+        text_frame = self.slides[-1].shapes.placeholders[1].text_frame
+        paragraph = text_frame.add_paragraph()
+        paragraph.alignment = pptx.enum.text.PP_ALIGN.LEFT
+        run = paragraph.add_run()
+        run.text = "Status: "
+        
+    
+    def depart_status(self,node):
+        logging.debug("status ->")
+
+    def visit_copyright(self,node):
+        logging.debug("-> copyright")
+        text_frame = self.slides[-1].shapes.placeholders[1].text_frame
+        paragraph = text_frame.add_paragraph()
+    
+    def depart_copyright(self,node):
+        logging.debug("copyright ->")
 
     def visit_docinfo(self,node):
         logging.debug("-> docinfo")

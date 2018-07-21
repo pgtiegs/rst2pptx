@@ -321,15 +321,25 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
 
     def visit_term(self,node):
         logging.debug("-> term")
+        text_frame = self.slides[-1].shapes.placeholders[1].text_frame
+        paragraph = text_frame.add_paragraph()
+        setBuNone(paragraph)
+        logging.debug("term: {}".format(node.astext()))
 
     def depart_term(self,node):
         logging.debug("term ->")
 
     def visit_definition(self,node):
         logging.debug("-> definition")
+        #text_frame = self.slides[-1].shapes.placeholders[1].text_frame
+        #paragraph = text_frame.add_paragraph()
 
     def depart_definition(self,node):
         logging.debug("definition ->")
+        text_frame = self.slides[-1].shapes.placeholders[1].text_frame
+        paragraph = text_frame.paragraphs[-1]
+        level = paragraph.level
+        paragraph.level = level +1
 
     def visit_block_quote(self,node):
         logging.debug("-> block_quote")

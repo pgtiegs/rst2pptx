@@ -68,6 +68,7 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
         self.slides = self.presentation.slides
         self.table_rows = None
         self.title_slide = True
+        self.section_level = 0
 
     def visit_document(self, node):
         pass
@@ -245,16 +246,43 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
         pass
 
     def visit_section(self, node):
-        self.title_slide = False
-        self.slides.add_slide(self.presentation.slide_layouts[1])
+        logging.debug("-> section")
+        logging.debug(self.section_level)
+        if self.section_level == 0:
+            self.title_slide = False
+            self.slides.add_slide(self.presentation.slide_layouts[1])
+        else:
+            logging.debug("SubSection")
+
+        self.section_level += 1
 
     def depart_section(self, node):
-        pass
+        self.section_level -= 1
+        logging.debug("section ->")
 
     def visit_title(self, node):
         logging.debug("visiting title")
+        logging.debug("text parent = {}".format(type(node.parent.tagname)))
         if len(self.slides):
-            self.slides[-1].shapes.title.text = node.astext()
+            logging.debug("{} {}".format(node.astext(), self.section_level))
+            #self.slides[-1].shapes.title.text = node.astext()
+            if self.section_level == 1:
+                self.slides[-1].shapes.title.text = node.astext()
+            elif self.section_level >= 1:
+                text_frame = self.slides[-1].shapes.placeholders[1].text_frame
+                paragraph = text_frame.add_paragraph()
+                setBuNone(paragraph)
+                run = paragraph.add_run()
+                run.text = node.astext()
+                run.font.bold = True
+
+            elif node.parent.tagname == "topic":
+                logging.debug("in topic")
+                text_frame = self.slides[-1].shapes.placeholders[1].text_frame
+                paragraph = text_frame.add_paragraph()
+                run = paragraph.add_run()
+                run.text = node.astext()
+                run.font.bold = True
         else:
             # Title slide.
             slide = self.slides.add_slide(self.presentation.slide_layouts[0])
@@ -317,6 +345,7 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
 
     def visit_topic(self,node):
         logging.debug("-> topic")
+        logging.debug(node)
 
     def depart_topic(self,node):
         logging.debug("topic ->")

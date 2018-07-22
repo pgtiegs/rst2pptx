@@ -35,6 +35,7 @@ import docutils.core
 import docutils.nodes
 import docutils.utils
 import pptx
+from pptx.util import Pt
 
 from lxml import etree
 __version__ = '0.3'
@@ -53,6 +54,24 @@ def setBuAutoNum(paragraph):
     e = etree.SubElement(paragraph._pPr, "{http://schemas.openxmlformats.org/drawingml/2006/main}buAutoNum")
     e.attrib["type"] = "arabicPeriod"
     e.attrib["startAt"] = "1"
+
+def setClasses(run, classes):
+    logging.debug("Classes = {}".format(classes))
+    for p_class in classes:
+        if p_class == 'tiny':
+            #50% size of font
+            run.font.size = Pt(16)
+            logging.debug("font size: {}".format(run.font))
+            
+        if p_class == 'small':
+            #75% size of font
+            run.font.size = Pt(24)
+            logging.debug("font size: {}".format(dir(run.font)))
+
+        if p_class == 'float-right':
+            slide = self.slides[-1]
+            logging.debug(vars(slide))
+
 
 class PowerPointTranslator(docutils.nodes.NodeVisitor):
 
@@ -205,11 +224,13 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
     def visit_Text(self, node):
         logging.debug("visiting text")
 
-        logging.debug("text parent = {}".format(node.parent.tagname))
+        logging.debug("text parent = {}".format(node.parent.attributes.get("classes")))
         text_frame = self.slides[-1].shapes.placeholders[1].text_frame
         paragraph = text_frame.paragraphs[-1]
         run = paragraph.add_run()
         run.text = node.astext()
+        
+        setClasses(run, node.parent.attributes.get('classes'))
 
     def depart_Text(self, node):
         logging.debug("departing text")
@@ -240,6 +261,7 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
                     setBuNone(paragraph)
             if self.bullet_list:
                 paragraph.level = self.bullet_level
+            
 
     def depart_paragraph(self, node):
         logging.debug("departing paragraph")
@@ -250,7 +272,9 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
         logging.debug(self.section_level)
         if self.section_level == 0:
             self.title_slide = False
+            logging.debug("Section Class = {}".format(node.attributes.get("classes")))
             self.slides.add_slide(self.presentation.slide_layouts[1])
+            
         else:
             logging.debug("SubSection")
 
@@ -371,7 +395,6 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
             self.bullet_level += 1
         else:
             self.bullet_list = True
-        logging.debug("visiting bullet_level {}".format(self.bullet_level))
 
 
 

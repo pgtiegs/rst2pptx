@@ -273,7 +273,9 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
         if self.section_level == 0:
             self.title_slide = False
             logging.debug("Section Class = {}".format(node.attributes.get("classes")))
-            self.slides.add_slide(self.presentation.slide_layouts[1])
+            section_classes = {'pptx-seque":2, "pptx-two-content":3}
+
+            self.slides.add_slide(self.presentation.slide_layouts[section_classes.get(node.attributes.get("classes"),1)])
             
         else:
             logging.debug("SubSection")

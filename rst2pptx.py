@@ -61,16 +61,12 @@ def setClasses(run, classes):
         if p_class == 'tiny':
             #50% size of font
             run.font.size = Pt(16)
-            logging.debug("font size: {}".format(run.font))
             
-        if p_class == 'small':
+        elif p_class == 'small':
             #75% size of font
             run.font.size = Pt(24)
-            logging.debug("font size: {}".format(dir(run.font)))
-
-        if p_class == 'float-right':
-            slide = self.slides[-1]
-            logging.debug(vars(slide))
+        else:
+            logging.debug("Unknown Class {}".format(p_class))
 
 
 class PowerPointTranslator(docutils.nodes.NodeVisitor):
@@ -88,6 +84,7 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
         self.table_rows = None
         self.title_slide = True
         self.section_level = 0
+        self.classes = []
 
     def visit_document(self, node):
         pass
@@ -99,21 +96,17 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
         logging.debug("-> decoration")
     
     def depart_decoration(self,node):
-        logging.debug("decoration ->")
+        logging.debug("decoration {} ->".format(node.attributes.get("classes")))
 
     def visit_footer(self,node):
         logging.debug("-> footer")
     
     def depart_footer(self,node):
-        logging.debug("footer ->")
+        logging.debug("footer {} ->".format(node.attributes.get("classes")))
 
     def visit_substitution_definition(self,node):
-        logging.debug("-> substitution_definition")
         raise docutils.nodes.SkipNode
     
-    def depart_substitution_definition(self,node):
-        logging.debug("substitution_definition ->")
-
     def visit_author(self,node):
         logging.debug("-> author")
         text_frame = self.slides[-1].shapes.placeholders[1].text_frame
@@ -121,7 +114,7 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
         paragraph.alignment = pptx.enum.text.PP_ALIGN.LEFT
     
     def depart_author(self,node):
-        logging.debug("author ->")
+        logging.debug("author {} ->".format(node.attributes.get("classes")))
 
     def visit_date(self,node):
         logging.debug("-> date")
@@ -130,7 +123,7 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
         paragraph.alignment = pptx.enum.text.PP_ALIGN.LEFT
     
     def depart_date(self,node):
-        logging.debug("date ->")
+        logging.debug("date {} ->".format(node.attributes.get("classes")))
 
     def visit_version(self,node):
         logging.debug("-> version")
@@ -139,7 +132,7 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
         paragraph.alignment = pptx.enum.text.PP_ALIGN.LEFT
     
     def depart_version(self,node):
-        logging.debug("version ->")
+        logging.debug("version {} ->".format(node.attributes.get("classes")))
 
     def visit_status(self,node):
         logging.debug("-> status")
@@ -151,7 +144,7 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
         
     
     def depart_status(self,node):
-        logging.debug("status ->")
+        logging.debug("status {} ->".format(node.attributes.get("classes")))
 
     def visit_copyright(self,node):
         logging.debug("-> copyright")
@@ -159,13 +152,13 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
         paragraph = text_frame.add_paragraph()
     
     def depart_copyright(self,node):
-        logging.debug("copyright ->")
+        logging.debug("copyright {} ->".format(node.attributes.get("classes")))
 
     def visit_docinfo(self,node):
         logging.debug("-> docinfo")
     
     def depart_docinfo(self,node):
-        logging.debug("docinfo ->")
+        logging.debug("docinfo {} ->".format(node.attributes.get("classes")))
 
     def visit_docinfo_item(self, node, name):
         pass
@@ -211,15 +204,18 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
 
     def visit_figure(self,node):
         logging.debug("-> figure")
+        self.classes.extend(node.attributes.get("classes", []))
     
     def depart_figure(self,node):
-        logging.debug("figure ->")
+        logging.debug("figure {} ->".format(node.attributes.get("classes")))
+        for text_class in node.attributes.get("classes",[]):
+            self.classes.remove(text_class)
 
     def visit_caption(self,node):
         logging.debug("-> caption")
     
     def depart_caption(self,node):
-        logging.debug("caption ->")
+        logging.debug("caption {} ->".format(node.attributes.get("classes")))
 
     def visit_Text(self, node):
         logging.debug("visiting text")
@@ -229,8 +225,7 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
         paragraph = text_frame.paragraphs[-1]
         run = paragraph.add_run()
         run.text = node.astext()
-        
-        setClasses(run, node.parent.attributes.get('classes'))
+        setClasses(run, self.classes)
 
     def depart_Text(self, node):
         logging.debug("departing text")
@@ -238,13 +233,17 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
 
     def visit_list_item(self, node):
         logging.debug("visiting list_item")
+        self.classes.extend(node.attributes.get("classes", []))
         
     def depart_list_item(self, node):
         logging.debug("departing list_item")
+        for text_class in node.attributes.get("classes",[]):
+            self.classes.remove(text_class)
         pass
 
     def visit_paragraph(self, node):
         logging.debug("visiting paragraph")
+        self.classes.extend(node.attributes.get("classes", []))
 
         shapes = self.slides[-1].shapes
 
@@ -265,17 +264,23 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
 
     def depart_paragraph(self, node):
         logging.debug("departing paragraph")
+        for text_class in node.attributes.get("classes",[]):
+            self.classes.remove(text_class)
         pass
 
     def visit_section(self, node):
         logging.debug("-> section")
+        self.classes.extend(node.attributes.get("classes", []))
         logging.debug(self.section_level)
         if self.section_level == 0:
             self.title_slide = False
-            logging.debug("Section Class = {}".format(node.attributes.get("classes")))
-            section_classes = {'pptx-seque":2, "pptx-two-content":3}
+            section_classes = {"pptx-content":1, "pptx-segue":2, "pptx-two-content":3}
+            slide_layout = 1 
+            for section_class in node.attributes.get("classes", []):
+                if section_class.startswith("pptx-"):   
+                    slide_layout = section_classes.get(section_class, 1)
 
-            self.slides.add_slide(self.presentation.slide_layouts[section_classes.get(node.attributes.get("classes"),1)])
+            self.slides.add_slide(self.presentation.slide_layouts[slide_layout])
             
         else:
             logging.debug("SubSection")
@@ -284,13 +289,12 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
 
     def depart_section(self, node):
         self.section_level -= 1
-        logging.debug("section ->")
+        for text_class in node.attributes.get("classes",[]):
+            self.classes.remove(text_class)
 
     def visit_title(self, node):
         logging.debug("visiting title")
-        logging.debug("text parent = {}".format(type(node.parent.tagname)))
         if len(self.slides):
-            logging.debug("{} {}".format(node.astext(), self.section_level))
             #self.slides[-1].shapes.title.text = node.astext()
             if self.section_level == 1:
                 self.slides[-1].shapes.title.text = node.astext()
@@ -331,19 +335,22 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
         logging.debug("-> literal")
 
     def depart_literal(self,node):
-        logging.debug("literal ->")
+        logging.debug("literal {} ->".format(node.attributes.get("classes")))
 
     def visit_definition_list(self,node):
         logging.debug("-> definition_list")
+        self.classes.extend(node.attributes.get("classes", []))
 
     def depart_definition_list(self,node):
-        logging.debug("definition_list->")
+        logging.debug("definition_list{} ->".format(node.attributes.get("classes")))
+        for text_class in node.attributes.get("classes",[]):
+            self.classes.remove(text_class)
 
     def visit_definition_list_item(self,node):
         logging.debug("-> definition_list_item")
 
     def depart_definition_list_item(self,node):
-        logging.debug("definition_list_item ->")
+        logging.debug("definition_list_item {} ->".format(node.attributes.get("classes")))
 
     def visit_term(self,node):
         logging.debug("-> term")
@@ -353,7 +360,7 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
         logging.debug("term: {}".format(node.astext()))
 
     def depart_term(self,node):
-        logging.debug("term ->")
+        logging.debug("term {} ->".format(node.attributes.get("classes")))
 
     def visit_definition(self,node):
         logging.debug("-> definition")
@@ -361,7 +368,7 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
         #paragraph = text_frame.add_paragraph()
 
     def depart_definition(self,node):
-        logging.debug("definition ->")
+        logging.debug("definition {} ->".format(node.attributes.get("classes")))
         text_frame = self.slides[-1].shapes.placeholders[1].text_frame
         paragraph = text_frame.paragraphs[-1]
         level = paragraph.level
@@ -369,30 +376,37 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
 
     def visit_block_quote(self,node):
         logging.debug("-> block_quote")
+        self.classes.extend(node.attributes.get("classes", []))
 
     def depart_block_quote(self,node):
-        logging.debug("block_quote ->")
+        logging.debug("block_quote {} ->".format(node.attributes.get("classes")))
+        for text_class in node.attributes.get("classes",[]):
+            self.classes.remove(text_class)
 
     def visit_inline(self,node):
         logging.debug("-> inline")
 
     def depart_inline(self,node):
-        logging.debug("inline ->")
+        logging.debug("inline {} ->".format(node.attributes.get("classes")))
 
     def visit_topic(self,node):
         logging.debug("-> topic")
+        self.classes.extend(node.attributes.get("classes", []))
         logging.debug(node)
 
     def depart_topic(self,node):
-        logging.debug("topic ->")
+        logging.debug("topic {} ->".format(node.attributes.get("classes")))
+        for text_class in node.attributes.get("classes",[]):
+            self.classes.remove(text_class)
 
     def visit_transition(self,node):
         logging.debug("-> transition")
 
     def depart_transition(self,node):
-        logging.debug("transition ->")
+        logging.debug("transition {} ->".format(node.attributes.get("classes")))
 
     def visit_bullet_list(self, node):
+        self.classes.extend(node.attributes.get("classes", []))
         if self.bullet_list:
             self.bullet_level += 1
         else:
@@ -401,6 +415,8 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
 
 
     def depart_bullet_list(self, node):
+        for text_class in node.attributes.get("classes",[]):
+            self.classes.remove(text_class)
         if self.bullet_level == 0:
             self.bullet_list = False
         if self.bullet_list:
@@ -410,25 +426,29 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
 
     def visit_enumerated_list(self, node):
         logging.debug("-> enumerated_list")
+        self.classes.extend(node.attributes.get("classes", []))
         if self.enum_list:
             self.bullet_level += 1
         else:
             self.enum_list = True
-        logging.debug("visiting bullet_level {}".format(self.bullet_level))
 
     def depart_enumerated_list(self, node):
-        logging.debug("enumerated_list ->")
+        logging.debug("enumerated_list {} ->".format(node.attributes.get("classes")))
+        for text_class in node.attributes.get("classes",[]):
+            self.classes.remove(text_class)
         if self.bullet_level == 0:
             self.enum_list = False
         if self.enum_list:
             self.bullet_level -= 1
-        logging.debug("departing bullet_level {}".format(self.bullet_level))
         assert self.bullet_level >= 0 
 
     def visit_tgroup(self, node):
+        self.classes.extend(node.attributes.get("classes", []))
         self.table_rows = []
 
     def depart_tgroup(self, node):
+        for text_class in node.attributes.get("classes",[]):
+            self.classes.remove(text_class)
         if self.table_rows and self.table_rows[0]:
             table = self.slides[-1].shapes.add_table(
                 rows=len(self.table_rows),
@@ -446,46 +466,68 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
 
     def visit_tbody(self,node):
         logging.debug("-> tbody")
+        self.classes.extend(node.attributes.get("classes", []))
     
     def depart_tbody(self,node):
-        logging.debug("tbody ->")
+        logging.debug("tbody {} ->".format(node.attributes.get("classes")))
+        for text_class in node.attributes.get("classes",[]):
+            self.classes.remove(text_class)
 
     def visit_thead(self,node):
         logging.debug("-> thead")
+        self.classes.extend(node.attributes.get("classes", []))
     
     def depart_thead(self,node):
-        logging.debug("thead ->")
+        logging.debug("thead {} ->".format(node.attributes.get("classes")))
+        for text_class in node.attributes.get("classes",[]):
+            self.classes.remove(text_class)
 
     def visit_table(self,node):
         logging.debug("-> table")
+        self.classes.extend(node.attributes.get("classes", []))
     
     def depart_table(self,node):
-        logging.debug("table ->")
+        logging.debug("table {} ->".format(node.attributes.get("classes")))
+        for text_class in node.attributes.get("classes",[]):
+            self.classes.remove(text_class)
 
     def visit_colspec(self,node):
         logging.debug("-> colspec")
+        self.classes.extend(node.attributes.get("classes", []))
+        
     
     def depart_colspec(self,node):
-        logging.debug("colspec ->")
+        logging.debug("colspec {} ->".format(node.attributes.get("classes")))
+        for text_class in node.attributes.get("classes",[]):
+            self.classes.remove(text_class)
 
     def visit_row(self, node):
         assert self.table_rows is not None
         self.table_rows.append([])
+        self.classes.extend(node.attributes.get("classes", []))
 
     def depart_row(self, node):
+        for text_class in node.attributes.get("classes",[]):
+            self.classes.remove(text_class)
         pass
 
     def visit_entry(self, node):
+        self.classes.extend(node.attributes.get("classes", []))
         self.table_rows[-1].append(node.astext())
         raise docutils.nodes.SkipNode
 
     def depart_entry(self, node):
+        for text_class in node.attributes.get("classes",[]):
+            self.classes.remove(text_class)
         pass
 
     def visit_reference(self, node):
         logging.debug("visiting reference")
+        self.classes.extend(node.attributes.get("classes", []))
 
     def depart_reference(self, node):    
+        for text_class in node.attributes.get("classes",[]):
+            self.classes.remove(text_class)
         text_frame = self.slides[-1].shapes.placeholders[1].text_frame
         paragraph = text_frame.paragraphs[-1]
         run = paragraph.runs[-1]

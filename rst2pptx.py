@@ -68,8 +68,25 @@ def setClasses(run, classes):
         else:
             logging.debug("Unknown Class {}".format(p_class))
 
+def _get_paragraph(slide, classes):
+    if "pptx-two-content" in classes and "float-right" in classes:
+        logging.debug("use right placeholder")
+        logging.debug(slide.shapes.placeholders[2].name)
+        text_frame = slide.shapes.placeholders[2].text_frame
+    else:
+        text_frame = slide.shapes.placeholders[1].text_frame
+    paragraph = text_frame.paragraphs[-1]
+    return paragraph
+
 def _add_paragraph(slide, classes):
-    text_frame = slide.shapes.placeholders[1].text_frame
+    logging.debug("Paragraph classes: {}".format(classes))
+    if "pptx-two-content" in classes and "float-right" in classes:
+        logging.debug("use right placeholder")
+        logging.debug(slide.shapes.placeholders[2].name)
+        text_frame = slide.shapes.placeholders[2].text_frame
+    else:
+        text_frame = slide.shapes.placeholders[1].text_frame
+
     paragraph = text_frame.add_paragraph()
     return paragraph
 
@@ -219,10 +236,7 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
 
     def visit_Text(self, node):
         logging.debug("visiting text")
-
-        logging.debug("text parent = {}".format(node.parent.attributes.get("classes")))
-        text_frame = self.slides[-1].shapes.placeholders[1].text_frame
-        paragraph = text_frame.paragraphs[-1]
+        paragraph = _get_paragraph(self.slides[-1], self.classes)
         run = paragraph.add_run()
         run.text = node.astext()
         setClasses(run, self.classes)
@@ -364,8 +378,7 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
 
     def depart_definition(self,node):
         logging.debug("definition {} ->".format(node.attributes.get("classes")))
-        text_frame = self.slides[-1].shapes.placeholders[1].text_frame
-        paragraph = text_frame.paragraphs[-1]
+        paragraph = _get_paragraph(self.slides[-1], self.classes)
         level = paragraph.level
         paragraph.level = level +1
 
@@ -526,8 +539,7 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
     def depart_reference(self, node):    
         for text_class in node.attributes.get("classes",[]):
             self.classes.remove(text_class)
-        text_frame = self.slides[-1].shapes.placeholders[1].text_frame
-        paragraph = text_frame.paragraphs[-1]
+        paragraph = _get_paragraph(self.slides[-1], self.classes)
         run = paragraph.runs[-1]
     
         run.hyperlink.address = node.attributes.get('refuri')
@@ -537,8 +549,7 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
         logging.debug("visiting strong")
 
     def depart_strong(self, node):
-        text_frame = self.slides[-1].shapes.placeholders[1].text_frame
-        paragraph = text_frame.paragraphs[-1]
+        paragraph = _get_paragraph(self.slides[-1], self.classes)
         run = paragraph.runs[-1]
 
         run.font.bold = True

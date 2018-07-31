@@ -36,6 +36,7 @@ import docutils.nodes
 import docutils.utils
 import pptx
 from pptx.util import Pt
+from pptx.dml.color import RGBColor
 
 from lxml import etree
 __version__ = '0.3'
@@ -44,6 +45,8 @@ logging.basicConfig(level=logging.DEBUG)
 
 TITLE_BUFFER = pptx.util.Inches(2.)
 MARGIN = pptx.util.Inches(1.)
+
+COLORS = {"red":"FF0000", }
 
 def setBuNone(paragraph):
     etree.SubElement(paragraph._pPr, "{http://schemas.openxmlformats.org/drawingml/2006/main}buNone")
@@ -65,6 +68,12 @@ def setClasses(run, classes):
         elif p_class == 'small':
             #75% size of font
             run.font.size = Pt(24)
+        elif p_class == 'monospace':
+            run.font.name = "Courier New"
+            #run.font.name = "monospace"
+        elif p_class in COLORS.keys():
+            logging.debug(RGBColor.from_string(COLORS[p_class]))
+            run.font.color.rgb = RGBColor.from_string(COLORS[p_class]) 
         else:
             logging.debug("Unknown Class {}".format(p_class))
 
@@ -393,9 +402,12 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
 
     def visit_inline(self,node):
         logging.debug("-> inline")
+        self.classes.extend(node.attributes.get("classes", []))
 
     def depart_inline(self,node):
         logging.debug("inline {} ->".format(node.attributes.get("classes")))
+        for text_class in node.attributes.get("classes",[]):
+            self.classes.remove(text_class)
 
     def visit_topic(self,node):
         logging.debug("-> topic")
@@ -554,6 +566,15 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
 
         run.font.bold = True
         logging.debug("departing strong")
+
+    def visit_title_reference(self, node):
+        logging.debug("visiting reference")
+        self.classes.extend(["monospace"])
+
+    def depart_title_reference(self, node):
+        logging.debug("departing title reference")
+        self.classes.remove("monospace")
+
 
     def visit_target(self, node):
         pass

@@ -46,6 +46,7 @@ logging.basicConfig(level=logging.DEBUG)
 TITLE_BUFFER = pptx.util.Inches(2.)
 MARGIN = pptx.util.Inches(1.)
 
+
 COLORS = {"blue":"0000FF","red":"FF0000", }
 
 def setBuNone(paragraph):
@@ -81,27 +82,6 @@ def setClasses(run, classes):
         else:
             logging.debug("Unknown Class {}".format(p_class))
 
-def _get_paragraph(slide, classes):
-    if "pptx-two-content" in classes and "float-right" in classes:
-        logging.debug("use right placeholder")
-        logging.debug(slide.shapes.placeholders[2].name)
-        text_frame = slide.shapes.placeholders[2].text_frame
-    else:
-        text_frame = slide.shapes.placeholders[1].text_frame
-    paragraph = text_frame.paragraphs[-1]
-    return paragraph
-
-def _add_paragraph(slide, classes):
-    logging.debug("Paragraph classes: {}".format(classes))
-    if "pptx-two-content" in classes and "float-right" in classes:
-        logging.debug("use right placeholder")
-        logging.debug(slide.shapes.placeholders[2].name)
-        text_frame = slide.shapes.placeholders[2].text_frame
-    else:
-        text_frame = slide.shapes.placeholders[1].text_frame
-
-    paragraph = text_frame.add_paragraph()
-    return paragraph
 
 
 class PowerPointTranslator(docutils.nodes.NodeVisitor):
@@ -123,6 +103,35 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
         self.row_index=0
         self.cell_index = 0
         self.in_table = False
+
+    def _get_paragraph(self):
+        slide = self.slides[-1]
+        classes = self.classes
+
+        if self.in_table:
+            text_frame = self.table.cell(row_idx=self.row_index, col_idx=self.cell_index).text_frame
+        elif "pptx-two-content" in classes and "float-right" in classes:
+            logging.debug("use right placeholder")
+            logging.debug(slide.shapes.placeholders[2].name)
+            text_frame = slide.shapes.placeholders[2].text_frame
+        else:
+            text_frame = slide.shapes.placeholders[1].text_frame
+        paragraph = text_frame.paragraphs[-1]
+        return paragraph
+
+    def _add_paragraph(self):
+        slide = self.slides[-1]
+        classes = self.classes
+        logging.debug("Paragraph classes: {}".format(classes))
+        if "pptx-two-content" in classes and "float-right" in classes:
+            logging.debug("use right placeholder")
+            logging.debug(slide.shapes.placeholders[2].name)
+            text_frame = slide.shapes.placeholders[2].text_frame
+        else:
+            text_frame = slide.shapes.placeholders[1].text_frame
+
+        paragraph = text_frame.add_paragraph()
+        return paragraph
 
     def visit_document(self, node):
         pass
@@ -147,7 +156,7 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
     
     def visit_author(self,node):
         logging.debug("-> author")
-        paragraph = _add_paragraph(self.slides[-1], self.classes)
+        paragraph = self._add_paragraph()
         paragraph.alignment = pptx.enum.text.PP_ALIGN.LEFT
     
     def depart_author(self,node):
@@ -155,7 +164,7 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
 
     def visit_date(self,node):
         logging.debug("-> date")
-        paragraph = _add_paragraph(self.slides[-1], self.classes)
+        paragraph = self._add_paragraph()
         paragraph.alignment = pptx.enum.text.PP_ALIGN.LEFT
     
     def depart_date(self,node):
@@ -163,7 +172,7 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
 
     def visit_version(self,node):
         logging.debug("-> version")
-        paragraph = _add_paragraph(self.slides[-1], self.classes)
+        paragraph = self._add_paragraph()
         paragraph.alignment = pptx.enum.text.PP_ALIGN.LEFT
     
     def depart_version(self,node):
@@ -171,7 +180,7 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
 
     def visit_status(self,node):
         logging.debug("-> status")
-        paragraph = _add_paragraph(self.slides[-1], self.classes)
+        paragraph = self._add_paragraph()
         paragraph.alignment = pptx.enum.text.PP_ALIGN.LEFT
         run = paragraph.add_run()
         run.text = "Status: "
@@ -182,7 +191,7 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
 
     def visit_copyright(self,node):
         logging.debug("-> copyright")
-        paragraph = _add_paragraph(self.slides[-1], self.classes)
+        paragraph = self._add_paragraph()
     
     def depart_copyright(self,node):
         logging.debug("copyright {} ->".format(node.attributes.get("classes")))
@@ -252,12 +261,8 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
 
     def visit_Text(self, node):
         logging.debug("visiting text")
-        if self.in_table:
-            logging.debug("Table Cell:{}: {}, {}".format(node.astext(), self.row_index, self.cell_index))
-            
-            paragraph = self.table.cell(row_idx=self.row_index, col_idx=self.cell_index).text_frame.paragraphs[-1]
-        else:
-            paragraph = _get_paragraph(self.slides[-1], self.classes)
+
+        paragraph = self._get_paragraph()
         run = paragraph.add_run()
         run.text = node.astext()
         setClasses(run, self.classes)
@@ -290,7 +295,7 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
             pass
 
         else:
-            paragraph = _add_paragraph(self.slides[-1], self.classes)
+            paragraph = self._add_paragraph()
             if not self.bullet_list:
                 if self.enum_list:
                     setBuAutoNum(paragraph)
@@ -338,7 +343,7 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
             if self.section_level == 1:
                 self.slides[-1].shapes.title.text = node.astext()
             elif self.section_level >= 1:
-                paragraph = _add_paragraph(self.slides[-1], self.classes)
+                paragraph = self._add_paragraph()
                 setBuNone(paragraph)
                 run = paragraph.add_run()
                 run.text = node.astext()
@@ -346,7 +351,7 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
 
             elif node.parent.tagname == "topic":
                 logging.debug("in topic")
-                paragraph = _add_paragraph(self.slides[-1], self.classes)
+                paragraph = self._add_paragraph()
                 run = paragraph.add_run()
                 run.text = node.astext()
                 run.font.bold = True
@@ -390,7 +395,7 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
 
     def visit_term(self,node):
         logging.debug("-> term")
-        paragraph = _add_paragraph(self.slides[-1], self.classes)
+        paragraph = self._add_paragraph()
         setBuNone(paragraph)
         logging.debug("term: {}".format(node.astext()))
 
@@ -402,7 +407,7 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
 
     def depart_definition(self,node):
         logging.debug("definition {} ->".format(node.attributes.get("classes")))
-        paragraph = _get_paragraph(self.slides[-1], self.classes)
+        paragraph = self._get_paragraph()
         level = paragraph.level
         paragraph.level = level +1
 
@@ -487,31 +492,33 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
         self.row_index = 0
         self.cell_index = 0
         cols = node.attributes.get("cols")
+        logging.debug(node)
         row_count = 0
+        col_widths = []
         for each in node.children:
             
             if each.tagname == 'thead' or each.tagname=='tbody':
                 row_count += len([x for x in each.children if x.tagname == 'row'])
+            if each.tagname == 'colspec':
+                col_widths.append(int(each.attributes.get("colwidth")))
         ph = self.slides[-1].shapes.placeholders[1]
-        logging.debug("{} x {}".format(ph.width, ph.height))
-        logging.debug("{} , {}".format(ph.left, ph.top))
-        logging.debug(row_count)
         table_height = min(ph.height, (row_count * Pt(32)))
         orig_left = ph.left
         orig_height = ph.height
         orig_width = ph.width
-        logging.debug(table_height)
+        
         self.table = self.slides[-1].shapes.add_table(rows=row_count, cols=cols,
                 left=ph.left, top=ph.top, 
                 width=ph.width,
                 height=table_height).table
-        logging.debug("current {} new {}".format(ph.top, ph.top+table_height))
+        for col in zip(self.table.columns, col_widths):
+            col[0].width = int(orig_width * (col[1]/100))
+
+        logging.debug(dir(self.table))
         ph.top = ph.top + table_height
         ph.left = orig_left
         ph.width = orig_width
         ph.height = orig_height - table_height
-        logging.debug("{} x {}".format(ph.width, ph.height))
-        logging.debug("{} , {}".format(ph.left, ph.top))
         self.in_table = True
 
         
@@ -609,7 +616,7 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
     def depart_reference(self, node):    
         for text_class in node.attributes.get("classes",[]):
             self.classes.remove(text_class)
-        paragraph = _get_paragraph(self.slides[-1], self.classes)
+        paragraph = self._get_paragraph()
         run = paragraph.runs[-1]
     
         run.hyperlink.address = node.attributes.get('refuri')
@@ -619,11 +626,21 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
         logging.debug("visiting strong")
 
     def depart_strong(self, node):
-        paragraph = _get_paragraph(self.slides[-1], self.classes)
+        paragraph = self._get_paragraph()
         run = paragraph.runs[-1]
 
         run.font.bold = True
         logging.debug("departing strong")
+
+    def visit_emphasis(self, node):
+        logging.debug("visiting emphasis")
+
+    def depart_emphasis(self, node):
+        paragraph = self._get_paragraph()
+        run = paragraph.runs[-1]
+
+        run.font.italic = True
+        logging.debug("departing emphasis")
 
     def visit_title_reference(self, node):
         logging.debug("visiting reference")

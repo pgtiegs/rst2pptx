@@ -46,7 +46,7 @@ logging.basicConfig(level=logging.DEBUG)
 TITLE_BUFFER = pptx.util.Inches(2.)
 MARGIN = pptx.util.Inches(1.)
 
-COLORS = {"red":"FF0000", }
+COLORS = {"blue":"0000FF","red":"FF0000", }
 
 def setBuNone(paragraph):
     etree.SubElement(paragraph._pPr, "{http://schemas.openxmlformats.org/drawingml/2006/main}buNone")
@@ -60,6 +60,7 @@ def setBuAutoNum(paragraph):
 
 def setClasses(run, classes):
     logging.debug("Classes = {}".format(classes))
+    
     for p_class in classes:
         if p_class == 'tiny':
             #50% size of font
@@ -73,7 +74,10 @@ def setClasses(run, classes):
             #run.font.name = "monospace"
         elif p_class in COLORS.keys():
             logging.debug(RGBColor.from_string(COLORS[p_class]))
-            run.font.color.rgb = RGBColor.from_string(COLORS[p_class]) 
+            run.font.color.rgb = RGBColor.from_string(COLORS[p_class])
+        elif p_class.strip('-hl') in COLORS.keys():
+            logging.debug(dir(run.text))
+            run.font.color.rgb = RGBColor.from_string(COLORS[p_class])
         else:
             logging.debug("Unknown Class {}".format(p_class))
 
@@ -116,6 +120,9 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
         self.title_slide = True
         self.section_level = 0
         self.classes = []
+        self.row_index=0
+        self.cell_index = 0
+        self.in_table = False
 
     def visit_document(self, node):
         pass
@@ -245,7 +252,12 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
 
     def visit_Text(self, node):
         logging.debug("visiting text")
-        paragraph = _get_paragraph(self.slides[-1], self.classes)
+        if self.in_table:
+            logging.debug("Table Cell:{}: {}, {}".format(node.astext(), self.row_index, self.cell_index))
+            
+            paragraph = self.table.cell(row_idx=self.row_index, col_idx=self.cell_index).text_frame.paragraphs[-1]
+        else:
+            paragraph = _get_paragraph(self.slides[-1], self.classes)
         run = paragraph.add_run()
         run.text = node.astext()
         setClasses(run, self.classes)
@@ -267,12 +279,16 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
     def visit_paragraph(self, node):
         logging.debug("visiting paragraph")
         self.classes.extend(node.attributes.get("classes", []))
-
+        logging.debug("Paragraph Parent {}".format(node.parent.tagname))
         shapes = self.slides[-1].shapes
 
         if self.title_slide and not shapes[-1].text:
             # This must be the empty text box for the subtitle.
             pass
+        elif node.parent.tagname == 'entry':
+
+            pass
+
         else:
             paragraph = _add_paragraph(self.slides[-1], self.classes)
             if not self.bullet_list:
@@ -339,7 +355,6 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
             slide = self.slides.add_slide(self.presentation.slide_layouts[0])
             slide.shapes.title.text = node.astext()
             self.title_slide = True
-            # TODO: Author.
         raise docutils.nodes.SkipNode
 
     def depart_title(self, node):
@@ -466,26 +481,63 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
         assert self.bullet_level >= 0 
 
     def visit_tgroup(self, node):
+        logging.debug("-> tgroup")
         self.classes.extend(node.attributes.get("classes", []))
         self.table_rows = []
+        self.row_index = 0
+        self.cell_index = 0
+        cols = node.attributes.get("cols")
+        row_count = 0
+        for each in node.children:
+            
+            if each.tagname == 'thead' or each.tagname=='tbody':
+                row_count += len([x for x in each.children if x.tagname == 'row'])
+        ph = self.slides[-1].shapes.placeholders[1]
+        logging.debug("{} x {}".format(ph.width, ph.height))
+        logging.debug("{} , {}".format(ph.left, ph.top))
+        logging.debug(row_count)
+        table_height = min(ph.height, (row_count * Pt(32)))
+        orig_left = ph.left
+        orig_height = ph.height
+        orig_width = ph.width
+        logging.debug(table_height)
+        self.table = self.slides[-1].shapes.add_table(rows=row_count, cols=cols,
+                left=ph.left, top=ph.top, 
+                width=ph.width,
+                height=table_height).table
+        logging.debug("current {} new {}".format(ph.top, ph.top+table_height))
+        ph.top = ph.top + table_height
+        ph.left = orig_left
+        ph.width = orig_width
+        ph.height = orig_height - table_height
+        logging.debug("{} x {}".format(ph.width, ph.height))
+        logging.debug("{} , {}".format(ph.left, ph.top))
+        self.in_table = True
+
+        
 
     def depart_tgroup(self, node):
+        self.in_table = False
+        logging.debug("tgroup {} ->".format(node.attributes.get("classes")))
         for text_class in node.attributes.get("classes",[]):
             self.classes.remove(text_class)
-        if self.table_rows and self.table_rows[0]:
-            table = self.slides[-1].shapes.add_table(
-                rows=len(self.table_rows),
-                cols=len(self.table_rows[0]),
-                left=MARGIN,
-                top=TITLE_BUFFER,
-                width=self.presentation.slide_width - 2 * MARGIN,
-                height=self.presentation.slide_height - 2 * TITLE_BUFFER).table
+       #if self.table_rows and self.table_rows[0]:
+       #    table = self.slides[-1].shapes.add_table(
+       #        rows=len(self.table_rows),
+       #        cols=len(self.table_rows[0]),
+       #        left=MARGIN,
+       #        top=TITLE_BUFFER,
+       #        width=self.presentation.slide_width - 2 * MARGIN,
+       #        height=self.presentation.slide_height - 2 * TITLE_BUFFER).table
 
-            for (row_index, row) in enumerate(self.table_rows):
-                for (col_index, col) in enumerate(row):
-                    table.cell(row_idx=row_index, col_idx=col_index).text = col
+       #    for (row_index, row) in enumerate(self.table_rows):
+       #        for (col_index, col) in enumerate(row):
+       #            table.cell(row_idx=row_index, col_idx=col_index).text = col
 
-            self.table_rows = None
+       #    self.table_rows = None
+        self.row_index = 0
+        self.cell_index = 0
+        self.in_table = False
 
     def visit_tbody(self,node):
         logging.debug("-> tbody")
@@ -508,6 +560,7 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
     def visit_table(self,node):
         logging.debug("-> table")
         self.classes.extend(node.attributes.get("classes", []))
+        
     
     def depart_table(self,node):
         logging.debug("table {} ->".format(node.attributes.get("classes")))
@@ -525,24 +578,29 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
             self.classes.remove(text_class)
 
     def visit_row(self, node):
+        logging.debug("-> row")
         assert self.table_rows is not None
         self.table_rows.append([])
         self.classes.extend(node.attributes.get("classes", []))
 
     def depart_row(self, node):
+        self.row_index += 1
+        self.cell_index = 0
+        logging.debug("row {} ->".format(node.attributes.get("classes")))
         for text_class in node.attributes.get("classes",[]):
             self.classes.remove(text_class)
-        pass
 
     def visit_entry(self, node):
+        logging.debug("-> entry")
         self.classes.extend(node.attributes.get("classes", []))
         self.table_rows[-1].append(node.astext())
-        raise docutils.nodes.SkipNode
+        #raise docutils.nodes.SkipNode
 
     def depart_entry(self, node):
+        self.cell_index +=1
+        logging.debug("entry {} ->".format(node.attributes.get("classes")))
         for text_class in node.attributes.get("classes",[]):
             self.classes.remove(text_class)
-        pass
 
     def visit_reference(self, node):
         logging.debug("visiting reference")

@@ -39,6 +39,8 @@ from pptx.util import Pt
 from pptx.dml.color import RGBColor
 
 from lxml import etree
+
+from colors import COLORS
 __version__ = '0.3'
 
 logging.basicConfig(level=logging.DEBUG)
@@ -47,7 +49,6 @@ TITLE_BUFFER = pptx.util.Inches(2.)
 MARGIN = pptx.util.Inches(1.)
 
 
-COLORS = {"blue":"0000FF","red":"FF0000", }
 
 def setBuNone(paragraph):
     etree.SubElement(paragraph._pPr, "{http://schemas.openxmlformats.org/drawingml/2006/main}buNone")

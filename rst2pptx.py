@@ -49,7 +49,6 @@ TITLE_BUFFER = pptx.util.Inches(2.)
 MARGIN = pptx.util.Inches(1.)
 
 
-
 def setBuNone(paragraph):
     etree.SubElement(paragraph._pPr, "{http://schemas.openxmlformats.org/drawingml/2006/main}buNone")
 
@@ -496,11 +495,14 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
         logging.debug(node)
         row_count = 0
         col_widths = []
+        first_row = False
         for each in node.children:
-            
-            if each.tagname == 'thead' or each.tagname=='tbody':
+            if each.tagname == 'thead':
+                first_row=True
                 row_count += len([x for x in each.children if x.tagname == 'row'])
-            if each.tagname == 'colspec':
+            elif each.tagname=='tbody':
+                row_count += len([x for x in each.children if x.tagname == 'row'])
+            elif each.tagname == 'colspec':
                 col_widths.append(int(each.attributes.get("colwidth")))
         ph = self.slides[-1].shapes.placeholders[1]
         table_height = min(ph.height, (row_count * Pt(32)))
@@ -514,7 +516,7 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
                 height=table_height).table
         for col in zip(self.table.columns, col_widths):
             col[0].width = int(orig_width * (col[1]/100))
-
+        self.table.first_row = first_row
         logging.debug(dir(self.table))
         ph.top = ph.top + table_height
         ph.left = orig_left

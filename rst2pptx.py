@@ -61,7 +61,7 @@ def setBuAutoNum(paragraph):
 
 def setClasses(run, classes):
     logging.debug("Classes = {}".format(classes))
-    
+    cell_classes = {'showstopper':'red-hl', 'high':'orange-hl', 'medium':'yellow-hl','med':'yellow-hl', 'low':'green-hl'}
     for p_class in classes:
         if p_class == 'tiny':
             #50% size of font
@@ -77,8 +77,15 @@ def setClasses(run, classes):
             logging.debug(RGBColor.from_string(COLORS[p_class]))
             run.font.color.rgb = RGBColor.from_string(COLORS[p_class])
         elif p_class.strip('-hl') in COLORS.keys():
-            logging.debug(dir(run.text))
-            run.font.color.rgb = RGBColor.from_string(COLORS[p_class])
+            if isinstance(run._parent._parent._parent,  pptx.shapes.table._Cell):
+                cell = run._parent._parent._parent
+                cell.fill.solid()
+                cell.fill.fore_color.rgb = RGBColor.from_string(COLORS[p_class.strip('-hl')])
+                logging.debug(dir(cell.fill))
+            else:
+                run.font.color.rgb = RGBColor.from_string(COLORS[p_class])
+        elif p_class in cell_classes.keys():
+            setClasses(run, [cell_classes[p_class]])
         else:
             logging.debug("Unknown Class {}".format(p_class))
 

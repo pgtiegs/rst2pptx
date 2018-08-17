@@ -35,6 +35,7 @@ import docutils.core
 import docutils.nodes
 import docutils.utils
 import pptx
+from pptx.enum.shapes import MSO_SHAPE
 from pptx.util import Pt
 from pptx.dml.color import RGBColor
 
@@ -81,6 +82,7 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
         self.row_index=0
         self.cell_index = 0
         self.in_table = False
+        self.in_block_quote = False
 
     def _get_paragraph(self):
         slide = self.slides[-1]
@@ -88,6 +90,8 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
 
         if self.in_table:
             text_frame = self.table.cell(row_idx=self.row_index, col_idx=self.cell_index).text_frame
+        elif self.in_block_quote:
+            text_frame = self.block_quote.text_frame
         elif "pptx-two-content" in classes and "float-right" in classes:
             logging.debug("use right placeholder")
             logging.debug(slide.shapes.placeholders[2].name)
@@ -456,6 +460,15 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
     def visit_block_quote(self,node):
         logging.debug("-> block_quote")
         self.classes.extend(node.attributes.get("classes", []))
+        block_height = 2 * Pt(32)
+        top = TITLE_BUFFER
+        top = self.presentation.slide_height - 2 * block_height
+        self.block_quote = self.slides[-1].shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE,
+                MARGIN,
+                top,
+                self.presentation.slide_width - 2 * MARGIN,
+                block_height)
+        self.in_block_quote = True
 
     def depart_block_quote(self,node):
         logging.debug("block_quote {} ->".format(node.attributes.get("classes")))
@@ -465,6 +478,7 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
     def visit_inline(self,node):
         logging.debug("-> inline")
         self.classes.extend(node.attributes.get("classes", []))
+        self.in_block_quote = True
 
     def depart_inline(self,node):
         logging.debug("inline {} ->".format(node.attributes.get("classes")))

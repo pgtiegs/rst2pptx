@@ -460,7 +460,7 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
     def visit_block_quote(self,node):
         logging.debug("-> block_quote")
         self.classes.extend(node.attributes.get("classes", []))
-        block_height = 2 * Pt(32)
+        block_height = 2 * Pt(24)
         top = TITLE_BUFFER
         top = self.presentation.slide_height - 2 * block_height
         self.block_quote = self.slides[-1].shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE,
@@ -474,11 +474,11 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
         logging.debug("block_quote {} ->".format(node.attributes.get("classes")))
         for text_class in node.attributes.get("classes",[]):
             self.classes.remove(text_class)
+        self.in_block_quote = False
 
     def visit_inline(self,node):
         logging.debug("-> inline")
         self.classes.extend(node.attributes.get("classes", []))
-        self.in_block_quote = True
 
     def depart_inline(self,node):
         logging.debug("inline {} ->".format(node.attributes.get("classes")))

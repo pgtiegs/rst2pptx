@@ -50,7 +50,8 @@ MARGIN = pptx.util.Inches(1.)
 
 
 def setBuNone(paragraph):
-    etree.SubElement(paragraph._pPr, "{http://schemas.openxmlformats.org/drawingml/2006/main}buNone")
+    if paragraph._pPr.find("{http://schemas.openxmlformats.org/drawingml/2006/main}buNone") is None:
+        etree.SubElement(paragraph._pPr, "{http://schemas.openxmlformats.org/drawingml/2006/main}buNone")
 
 def setBuAutoNum(paragraph):
     paragraph._pPr.attrib['marL'] = "427789"
@@ -58,36 +59,6 @@ def setBuAutoNum(paragraph):
     e = etree.SubElement(paragraph._pPr, "{http://schemas.openxmlformats.org/drawingml/2006/main}buAutoNum")
     e.attrib["type"] = "arabicPeriod"
     e.attrib["startAt"] = "1"
-
-def setClasses(run, classes):
-    logging.debug("Classes = {}".format(classes))
-    cell_classes = {'showstopper':'red-hl', 'high':'orange-hl', 'medium':'yellow-hl','med':'yellow-hl', 'low':'green-hl'}
-    for p_class in classes:
-        if p_class == 'tiny':
-            #50% size of font
-            run.font.size = Pt(16)
-            
-        elif p_class == 'small':
-            #75% size of font
-            run.font.size = Pt(24)
-        elif p_class == 'monospace':
-            run.font.name = "Courier New"
-            #run.font.name = "monospace"
-        elif p_class in COLORS.keys():
-            logging.debug(RGBColor.from_string(COLORS[p_class]))
-            run.font.color.rgb = RGBColor.from_string(COLORS[p_class])
-        elif p_class.strip('-hl') in COLORS.keys():
-            if isinstance(run._parent._parent._parent,  pptx.shapes.table._Cell):
-                cell = run._parent._parent._parent
-                cell.fill.solid()
-                cell.fill.fore_color.rgb = RGBColor.from_string(COLORS[p_class.strip('-hl')])
-                logging.debug(dir(cell.fill))
-            else:
-                run.font.color.rgb = RGBColor.from_string(COLORS[p_class])
-        elif p_class in cell_classes.keys():
-            setClasses(run, [cell_classes[p_class]])
-        else:
-            logging.debug("Unknown Class {}".format(p_class))
 
 
 
@@ -139,6 +110,58 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
 
         paragraph = text_frame.add_paragraph()
         return paragraph
+
+    def _setClasses(self, run, classes):
+        logging.debug("Classes = {}".format(classes))
+        cell_classes = {'showstopper':'red-hl', 'high':'orange-hl', 'medium':'yellow-hl','med':'yellow-hl', 'low':'green-hl'}
+        code_classes = set(['keyword', 'operator', 'function', 'name', 'literal', 'comment', 'punctuation'])
+        mono_classes = set(['monospace']).union(code_classes)
+        logging.debug("is code {}".format(set(classes).intersection(code_classes)))
+
+        for p_class in classes:
+            if p_class == 'tiny':
+                #50% size of font
+                run.font.size = Pt(16)
+                
+            elif p_class == 'small':
+                #75% size of font
+                run.font.size = Pt(24)
+            elif p_class == 'monospace':
+                run.font.name = "Courier New"
+                #run.font.name = "monospace"
+            elif p_class in COLORS.keys():
+                logging.debug(RGBColor.from_string(COLORS[p_class]))
+                run.font.color.rgb = RGBColor.from_string(COLORS[p_class])
+            elif p_class.strip('-hl') in COLORS.keys():
+                if isinstance(run._parent._parent._parent,  pptx.shapes.table._Cell):
+                    cell = run._parent._parent._parent
+                    cell.fill.solid()
+                    cell.fill.fore_color.rgb = RGBColor.from_string(COLORS[p_class.strip('-hl')])
+                    logging.debug(dir(cell.fill))
+                else:
+                    run.font.color.rgb = RGBColor.from_string(COLORS[p_class])
+            elif p_class in cell_classes.keys():
+                self._setClasses(run, [cell_classes[p_class]])
+            elif p_class == 'keyword' or p_class == 'operator':
+                run.font.color.rgb = RGBColor.from_string(COLORS["blue"])
+                run.font.name = "Courier New"
+                for child in run._parent._pPr:
+                    logging.debug(child)
+            elif p_class == 'name':
+                if "function" in classes:
+                    logging.debug("function name")
+                    run.font.color.rgb = RGBColor.from_string(COLORS["green"])
+                run.font.name = "Courier New"
+            elif p_class == 'punctuation':
+                run.font.name = "Courier New"
+            elif p_class == 'literal':
+                run.font.name = "Courier New"
+                run.font.color.rgb = RGBColor.from_string(COLORS["blueviolet"])
+            elif p_class == 'comment':
+                run.font.name = "Courier New"
+                run.font.color.rgb = RGBColor.from_string(COLORS["grey"])
+            else:
+                logging.debug("Unknown Class {}".format(p_class))
 
     def visit_document(self, node):
         pass
@@ -268,11 +291,20 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
 
     def visit_Text(self, node):
         logging.debug("visiting text")
+        logging.debug(node)
+        if '\n' in node.astext():
+            for c in [x for x in node.astext() if x == '\n']:
+                logging.debug("new paragraph")
+                paragraph = self._add_paragraph()
+                setBuNone(paragraph)
+            run = paragraph.add_run()
+            run.text = node.astext().strip('\n')
 
-        paragraph = self._get_paragraph()
-        run = paragraph.add_run()
-        run.text = node.astext()
-        setClasses(run, self.classes)
+        else:
+            paragraph = self._get_paragraph()
+            run = paragraph.add_run()
+            run.text = node.astext()
+        self._setClasses(run, self.classes)
 
     def depart_Text(self, node):
         logging.debug("departing text")
@@ -374,10 +406,13 @@ class PowerPointTranslator(docutils.nodes.NodeVisitor):
         pass
 
     def visit_literal_block(self, node):
-        pass
+        logging.debug("literal_block {} ->".format(node.attributes.get("classes")))
+        self.classes.extend(node.attributes.get("classes", []))
+        paragraph = self._add_paragraph()
+        setBuNone(paragraph)
 
     def depart_literal_block(self, node):
-        pass
+        logging.debug("literal_block {} ->".format(node.attributes.get("classes")))
 
     def visit_literal(self,node):
         logging.debug("-> literal")

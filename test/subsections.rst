@@ -1,5 +1,5 @@
 =======================
-Sample Basic Content
+Sample Title
 =======================
 hello
 

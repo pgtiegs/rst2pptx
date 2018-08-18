@@ -70,5 +70,9 @@ My Subsection
 
     def test_subsections(self):
         self.base_slides("subsections")
+
+    def test_definitionlist(self):
+        self.base_slides("definitionlist")
+
 if __name__ == '__main__':
     unittest.main()

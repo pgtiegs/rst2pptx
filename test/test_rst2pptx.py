@@ -77,5 +77,8 @@ My Subsection
     def test_classes(self):
         self.base_slides("classes")
 
+    def test_tables(self):
+        self.base_slides("tables")
+
 if __name__ == '__main__':
     unittest.main()

@@ -40,7 +40,7 @@ from pptx.util import Pt
 from lxml import etree
 __version__ = '0.3'
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.WARNING)
 
 TITLE_BUFFER = pptx.util.Inches(2.)
 MARGIN = pptx.util.Inches(1.)

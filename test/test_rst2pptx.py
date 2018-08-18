@@ -51,7 +51,7 @@ My Subsection
         base_slides = [etree.parse(x).getroot() for x in glob.glob("test/{}/*.xml".format(feature))] 
         for base, slide in zip(base_slides, writer.presentation.slides):
             print(slide.element)
-            self.assertEqual(etree.tostring(base), etree.tostring(slide.element))
+            self.assertEqual(etree.tostring(base, method="c14n"), etree.tostring(slide.element, method="c14n"))
 
     def test_bullets(self):
         self.base_slides("bullets")
@@ -79,6 +79,9 @@ My Subsection
 
     def test_tables(self):
         self.base_slides("tables")
+
+    def test_code(self):
+        self.base_slides("code")
 
 if __name__ == '__main__':
     unittest.main()

@@ -1,11 +1,6 @@
-﻿################################################################################
-# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
-################################################################################
-
-/dist
-/.vs
-/build
-/py3
-/rst2pptx.egg-info
-/__pycache__
-setup.cfg
+.*.swp
+dist
+build
+*.pyc
+*~
+*.egg-info
